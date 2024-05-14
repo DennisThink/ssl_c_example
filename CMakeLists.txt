@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.5)
+project(SSL_DEMO)
+include_directories(./inc/)
+link_directories(./libs/)
+add_executable(SslServer ./SSL_Server.c)
+add_executable(sslClient ./SSL_Client.c)
+target_link_libraries(SslServer libcrypto-1_1-x64.lib)
+target_link_libraries(SslServer libssl-1_1-x64.lib)
+target_link_libraries(SslServer ws2_32.lib)
+
+target_link_libraries(sslClient libcrypto-1_1-x64.lib)
+target_link_libraries(sslClient libssl-1_1-x64.lib)
+target_link_libraries(sslClient ws2_32.lib)
