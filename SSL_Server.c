@@ -7,7 +7,9 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <winsock.h>
-
+/*
+openssl req - nodes - new - x509 - keyout server.key - out server.cert
+*/
 int create_socket(int port)
 {
     int s;
@@ -116,13 +118,29 @@ int main(int argc, char **argv)
         ssl = SSL_new(ctx);
         SSL_set_fd(ssl, client);
 
-        if (SSL_accept(ssl) <= 0) {
-            ERR_print_errors_fp(stderr);
-        } else {
-            SSL_write(ssl, reply, strlen(reply));
-            char buff[32] = { 0 };
-            SSL_read(ssl, buff, 32);
-            printf("Read: %s \n", buff);
+        while(TRUE)
+        {
+            if (SSL_accept(ssl) <= 0) {
+                ERR_print_errors_fp(stderr);
+            }
+            else {
+                char buff[32] = { 0 };
+                int ret = 0;
+                ret = SSL_read(ssl, buff, 32);
+                if (ret < 0)
+                {
+                    break;
+                }
+                if (ret > 0)
+                {
+                    printf("Read: %s \n", buff);
+                }
+                ret = SSL_write(ssl, buff, strlen(buff));
+                if (ret < 0)
+                {
+                    break;
+                }
+            }
         }
 
         //close(client);
