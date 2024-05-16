@@ -111,18 +111,35 @@ int main(int argc, char* argv[])
                 {
                     char sendBuff[32] = { 0 };
                     char recvBuff[32] = { 0 };
-                    int index = 0;
-                    while (index < 10)
                     {
-                        memset(sendBuff, 0, 32);
-                        memset(recvBuff, 0, 32);
-                        sprintf(sendBuff, "%d Time Value: %d \n", index, rand());
-                        ret = SSL_write(sslElem._ssl, sendBuff, (int)(strlen(sendBuff)));
-                        ret = SSL_read(sslElem._ssl, recvBuff, 32);
-                        printf("Send: %s\r\n", sendBuff);
-                        printf("Recv: %s\r\n", recvBuff);
-                        Sleep(1000);
-                        index++;
+                        int index = 0;
+                        while (index < 10)
+                        {
+                            memset(sendBuff, 0, 32);
+                            memset(recvBuff, 0, 32);
+                            sprintf(sendBuff, "%d Time Value: %d \n", index, rand());
+                            ret = SSL_write(sslElem._ssl, sendBuff, (int)(strlen(sendBuff)));
+                            ret = SSL_read(sslElem._ssl, recvBuff, 32);
+                            printf("Send: %s\r\n", sendBuff);
+                            printf("Recv: %s\r\n", recvBuff);
+                            Sleep(1000);
+                            index++;
+                        }
+                    }
+                    {
+                        int index = 0;
+                        while (index < 10)
+                        {
+                            memset(sendBuff, 0, 32);
+                            memset(recvBuff, 0, 32);
+                            sprintf(sendBuff, "%d Time Value: %d \n", index, rand());
+                            ret = send(sockFd, sendBuff, strlen(sendBuff), 0);
+                            ret = recv(sockFd, recvBuff, 32,0);
+                            printf("Send: %s\r\n", sendBuff);
+                            printf("Recv: %s\r\n", recvBuff);
+                            Sleep(1000);
+                            index++;
+                        }
                     }
                 }
                 closesocket(sockFd);

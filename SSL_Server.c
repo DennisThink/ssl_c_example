@@ -367,7 +367,7 @@ int OldSSLServer(int argc, char **argv)
             ERR_print_errors_fp(stderr);
         }
         else {
-            while (1)
+            for (int i = 0; i < 10; i++)
             {
                 char buff[32] = { 0 };
                 int ret = 0;
@@ -381,6 +381,29 @@ int OldSSLServer(int argc, char **argv)
                     break;
                 }
                 ret = SSL_write(ssl, buff, strlen(buff));
+                if (ret > 0)
+                {
+                    printf("S: %s \n", buff);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                char buff[32] = { 0 };
+                int ret = 0;
+                ret = recv(client, buff, 32,0);
+                if (ret > 0)
+                {
+                    printf("C: %s \n", buff);
+                }
+                else
+                {
+                    break;
+                }
+                ret = send(client, buff, 32, 0);
                 if (ret > 0)
                 {
                     printf("S: %s \n", buff);
