@@ -5,54 +5,58 @@
 #include <openssl/err.h>
 #include <winsock.h>
 #include <Windows.h>
+    SSL_CTX* InitClientCTX(void) {
+        // create server ssl context
+        OpenSSL_add_all_algorithms(); // set cryptos
+        SSL_load_error_strings(); // set error messages
+        const SSL_METHOD* method = TLS_client_method(); // create client method
+        SSL_CTX* ctx = SSL_CTX_new(method); // create client context
+        if (ctx == NULL) ERR_print_errors_fp(stderr); // print error
+        return ctx;
+        exit(-1);
+    }
 
-SSL_CTX* InitClientCTX(void) {
-    // create server ssl context
-    OpenSSL_add_all_algorithms(); // set cryptos
-    SSL_load_error_strings(); // set error messages
-    const SSL_METHOD* method = TLS_client_method(); // create client method
-    SSL_CTX* ctx = SSL_CTX_new(method); // create client context
-    if (ctx == NULL) ERR_print_errors_fp(stderr); // print error
-    return ctx;
-    exit(-1);
-}
-
-WSADATA WinSockInit()
-{
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-    wVersionRequested = MAKEWORD(1, 1);
-    err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0)
+    WSADATA WinSockInit()
     {
-        /* Tell the user that we couldn't find a useable */
-        /* winsock.dll. */
+        WORD wVersionRequested;
+        WSADATA wsaData;
+        int err;
+        wVersionRequested = MAKEWORD(1, 1);
+        err = WSAStartup(wVersionRequested, &wsaData);
+        if (err != 0)
+        {
+            /* Tell the user that we couldn't find a useable */
+            /* winsock.dll. */
+            return wsaData;
+        }
         return wsaData;
     }
-    return wsaData;
-}
-void WinSockClean(const WSADATA wsaData)
-{
-    /* Confirm that the Windows Sockets DLL supports 1.1.*/
-   /* Note that if the DLL supports versions greater */
-   /* than 1.1 in addition to 1.1, it will still return */
-   /* 1.1 in wVersion since that is the version we */
-   /* requested. */
-    if (LOBYTE(wsaData.wVersion) != 1 ||
-        HIBYTE(wsaData.wVersion) != 1)
+    void WinSockClean(const WSADATA wsaData)
     {
-        /* Tell the user that we couldn't find a useable */
-        /* winsock.dll. */
-        WSACleanup();
-        return;
+        /* Confirm that the Windows Sockets DLL supports 1.1.*/
+       /* Note that if the DLL supports versions greater */
+       /* than 1.1 in addition to 1.1, it will still return */
+       /* 1.1 in wVersion since that is the version we */
+       /* requested. */
+        if (LOBYTE(wsaData.wVersion) != 1 ||
+            HIBYTE(wsaData.wVersion) != 1)
+        {
+            /* Tell the user that we couldn't find a useable */
+            /* winsock.dll. */
+            WSACleanup();
+            return;
+        }
     }
-}
-
 struct SSL_Elem
 {
     SSL_CTX* _ctx;
     SSL* _ssl;
+};
+
+struct SSL_SOCKET_Elem
+{
+    SSL* _ssl;
+    SOCKET _sockfd;
 };
 
 struct SSL_Elem SSLCreateElem()
