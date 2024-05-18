@@ -130,38 +130,40 @@ WSADATA WinSockInit()
     }
     return wsaData;
 }
-#endif
 
 
-/*void WinSockClean(const WSADATA wsaData)
+
+void WinSockClean(const WSADATA wsaData)
 {
     /* Confirm that the Windows Sockets DLL supports 1.1.*/
    /* Note that if the DLL supports versions greater */
    /* than 1.1 in addition to 1.1, it will still return */
    /* 1.1 in wVersion since that is the version we */
    /* requested. */
-    //if (LOBYTE(wsaData.wVersion) != 1 ||
-    //    HIBYTE(wsaData.wVersion) != 1)
-    //{
+    if (LOBYTE(wsaData.wVersion) != 1 ||
+        HIBYTE(wsaData.wVersion) != 1)
+    {
         /* Tell the user that we couldn't find a useable */
         /* winsock.dll. */
-      /*  WSACleanup();
+        WSACleanup();
         return;
     }
-}*/
+}
+#endif
 
 struct SSL_NET_Elem
 {
-    //WSADATA _wsaData;
+#ifdef WINDOWS_OS
+    WSADATA _wsaData;
+#endif
     SSL_CTX* _ctx;
-  
 };
 
 struct SSL_NET_Elem Init_SSL_Net(const char * pCertFile,const char * pKeyFile)
 {
     struct SSL_NET_Elem result;
     result._ctx = NULL;
-    /*
+    #ifdef WINDOWS_OS
     {
         WORD wVersionRequested;
         WSADATA wsaData;
@@ -177,7 +179,8 @@ struct SSL_NET_Elem Init_SSL_Net(const char * pCertFile,const char * pKeyFile)
         {
             result._wsaData = wsaData;
         }
-    }*/
+    }
+    #endif
     {
         SSL_library_init(); // init ssl lib
     }
@@ -280,8 +283,13 @@ int Read_SSL_Data(const struct SSL_Socket_Elem sock,char* pBuff, const int len)
 
 int Close_SSL_Connection(const struct SSL_Socket_Elem sock)
 {
-    //closesocket(sock._sockFd);
+    #ifdef WINDOWS_OS
+    closesocket(sock._sockFd);
+    #endif 
+
+    #ifdef LINUX_OS
     close(sock._sockFd);
+    #endif
     SSL_shutdown(sock._ssl);
     SSL_free(sock._ssl);
     return 1;
@@ -290,7 +298,9 @@ int Close_SSL_Connection(const struct SSL_Socket_Elem sock)
 void Clear_SSL_NET(struct SSL_NET_Elem elem)
 {
     SSL_CTX_free(elem._ctx);
-    //WinSockClean(elem._wsaData);
+#ifdef WINDOWS_OS
+    WinSockClean(elem._wsaData);
+#endif
 }
 
 int NewSSLServer(int argc, char* argv[])
@@ -301,7 +311,7 @@ int NewSSLServer(int argc, char* argv[])
     {
         SOCKET serverSockFd = Create_SSL_Socket();
         {
-            Start_SSL_Listen(serverSockFd, "127.0.01", 4433);
+            Start_SSL_Listen(serverSockFd, "127.0.0.1", 4433);
             for (int i = 0; i < 10; i++)
             {
                 struct SSL_Socket_Elem sockElem = Accept1_SSL_Client(serverSockFd, sslElem._ctx);
@@ -353,111 +363,117 @@ int NewSSLServer(int argc, char* argv[])
 }
 int OldSSLServer(int argc, char **argv)
 {
-    //WSADATA wsaData = WinSockInit();
-    //1. SSL Init
-    SSL_library_init(); // init ssl lib
-    SSL_CTX *ctx;
-    /* Ignore broken pipe signals */
-    //signal(SIGPIPE, SIG_IGN);
-    ctx = CreateContext();
-
-    ConfigureContext("Cert.pem", "Key.pem", ctx);
-
-    SOCKET serverSockFd = CreateServerSocket("127.0.0.1",4433);
-
-    /* Handle connections */
-    for(int i = 0 ; i < 10 ; i++) 
+    #ifdef WINDOWS_OS
+    WSADATA wsaData = WinSockInit();
+    #endif
     {
-        struct sockaddr_in addr;
-        unsigned int len = sizeof(addr);
-        SSL *ssl;
-        const char reply[] = "test\n";
+        //1. SSL Init
+        SSL_library_init(); // init ssl lib
+        SSL_CTX *ctx;
+        /* Ignore broken pipe signals */
+        //signal(SIGPIPE, SIG_IGN);
+        ctx = CreateContext();
 
-        SOCKET client = accept(serverSockFd, (struct sockaddr*)&addr, &len);
-        if (client < 0) {
-            perror("Unable to accept");
-            exit(EXIT_FAILURE);
-        }
+        ConfigureContext("Cert.pem", "Key.pem", ctx);
 
-        ssl = SSL_new(ctx);
-        SSL_set_fd(ssl, client);
+        SOCKET serverSockFd = CreateServerSocket("127.0.0.1",4433);
 
+        /* Handle connections */
+        for(int i = 0 ; i < 10 ; i++) 
+        {
+            struct sockaddr_in addr;
+            unsigned int len = sizeof(addr);
+            SSL *ssl;
+            const char reply[] = "test\n";
 
-        if (SSL_accept(ssl) <= 0) {
-            ERR_print_errors_fp(stderr);
-        }
-        else {
-            for (int i = 0; i < 10; i++)
-            {
-                char buff[32] = { 0 };
-                int ret = 0;
-                ret = SSL_read(ssl, buff, 32);
-                if (ret > 0)
-                {
-                    printf("C: %s \n", buff);
-                }
-                else
-                {
-                    break;
-                }
-                ret = SSL_write(ssl, buff, strlen(buff));
-                if (ret > 0)
-                {
-                    printf("S: %s \n", buff);
-                }
-                else
-                {
-                    break;
-                }
+            SOCKET client = accept(serverSockFd, (struct sockaddr*)&addr, &len);
+            if (client < 0) {
+                perror("Unable to accept");
+                exit(EXIT_FAILURE);
             }
-            for (int i = 0; i < 10; i++)
-            {
-                char buff[32] = { 0 };
-                int ret = 0;
-                ret = recv(client, buff, 32,0);
-                if (ret > 0)
-                {
-                    printf("C: %s \n", buff);
-                }
-                else
-                {
-                    break;
-                }
-                ret = send(client, buff, 32, 0);
-                if (ret > 0)
-                {
-                    printf("S: %s \n", buff);
-                }
-                else
-                {
-                    break;
-                }
+
+            ssl = SSL_new(ctx);
+            SSL_set_fd(ssl, client);
+
+
+            if (SSL_accept(ssl) <= 0) {
+                ERR_print_errors_fp(stderr);
             }
-            //close(client);
-            #ifdef WINDOWS_OS
-            closesocket(client);
-            #endif
+            else {
+                for (int i = 0; i < 10; i++)
+                {
+                    char buff[32] = { 0 };
+                    int ret = 0;
+                    ret = SSL_read(ssl, buff, 32);
+                    if (ret > 0)
+                    {
+                        printf("C: %s \n", buff);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    ret = SSL_write(ssl, buff, strlen(buff));
+                    if (ret > 0)
+                    {
+                        printf("S: %s \n", buff);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                for (int i = 0; i < 10; i++)
+                {
+                    char buff[32] = { 0 };
+                    int ret = 0;
+                    ret = recv(client, buff, 32,0);
+                    if (ret > 0)
+                    {
+                        printf("C: %s \n", buff);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    ret = send(client, buff, 32, 0);
+                    if (ret > 0)
+                    {
+                        printf("S: %s \n", buff);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                //close(client);
+                #ifdef WINDOWS_OS
+                closesocket(client);
+                #endif
 
-            #ifdef LINUX_OS
-            close(client);
-            #endif
+                #ifdef LINUX_OS
+                close(client);
+                #endif
 
-            SSL_shutdown(ssl);
-            SSL_free(ssl);
+                SSL_shutdown(ssl);
+                SSL_free(ssl);
+            }
         }
+
+        #ifdef WINDOWS_OS
+        closesocket(serverSockFd);
+        #endif
+
+        #ifdef LINUX_OS
+        close(serverSockFd);
+        #endif
+    
+        SSL_CTX_free(ctx);
     }
 
     #ifdef WINDOWS_OS
-    closesocket(serverSockFd);
+    WinSockClean(wsaData);
     #endif
-
-    #ifdef LINUX_OS
-    close(serverSockFd);
-    #endif
- 
-    SSL_CTX_free(ctx);
-
-    //WinSockClean(wsaData);
     return 0;
 }
 
