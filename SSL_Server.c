@@ -3,7 +3,16 @@
 #include <signal.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#ifdef WINDOWS_OS
 #include <winsock.h>
+#endif
+
+#ifdef LINUX_OS
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#define SOCKET int
+#endif
 
 struct SSL_Elem
 {
@@ -104,6 +113,8 @@ void ConfigureContext(const char * pCertFile,const char * pKeyFile,SSL_CTX *ctx)
     }
 }
 
+
+#ifdef WINDOWS_OS
 WSADATA WinSockInit()
 {
     WORD wVersionRequested;
@@ -119,28 +130,29 @@ WSADATA WinSockInit()
     }
     return wsaData;
 }
+#endif
 
 
-void WinSockClean(const WSADATA wsaData)
+/*void WinSockClean(const WSADATA wsaData)
 {
     /* Confirm that the Windows Sockets DLL supports 1.1.*/
    /* Note that if the DLL supports versions greater */
    /* than 1.1 in addition to 1.1, it will still return */
    /* 1.1 in wVersion since that is the version we */
    /* requested. */
-    if (LOBYTE(wsaData.wVersion) != 1 ||
-        HIBYTE(wsaData.wVersion) != 1)
-    {
+    //if (LOBYTE(wsaData.wVersion) != 1 ||
+    //    HIBYTE(wsaData.wVersion) != 1)
+    //{
         /* Tell the user that we couldn't find a useable */
         /* winsock.dll. */
-        WSACleanup();
+      /*  WSACleanup();
         return;
     }
-}
+}*/
 
 struct SSL_NET_Elem
 {
-    WSADATA _wsaData;
+    //WSADATA _wsaData;
     SSL_CTX* _ctx;
   
 };
@@ -149,6 +161,7 @@ struct SSL_NET_Elem Init_SSL_Net(const char * pCertFile,const char * pKeyFile)
 {
     struct SSL_NET_Elem result;
     result._ctx = NULL;
+    /*
     {
         WORD wVersionRequested;
         WSADATA wsaData;
@@ -164,7 +177,7 @@ struct SSL_NET_Elem Init_SSL_Net(const char * pCertFile,const char * pKeyFile)
         {
             result._wsaData = wsaData;
         }
-    }
+    }*/
     {
         SSL_library_init(); // init ssl lib
     }
@@ -267,7 +280,8 @@ int Read_SSL_Data(const struct SSL_Socket_Elem sock,char* pBuff, const int len)
 
 int Close_SSL_Connection(const struct SSL_Socket_Elem sock)
 {
-    closesocket(sock._sockFd);
+    //closesocket(sock._sockFd);
+    close(sock._sockFd);
     SSL_shutdown(sock._ssl);
     SSL_free(sock._ssl);
     return 1;
@@ -276,7 +290,7 @@ int Close_SSL_Connection(const struct SSL_Socket_Elem sock)
 void Clear_SSL_NET(struct SSL_NET_Elem elem)
 {
     SSL_CTX_free(elem._ctx);
-    WinSockClean(elem._wsaData);
+    //WinSockClean(elem._wsaData);
 }
 
 int NewSSLServer(int argc, char* argv[])
@@ -322,7 +336,13 @@ int NewSSLServer(int argc, char* argv[])
                 }
             }
         }
+        #ifdef WINDOWS_OS
         closesocket(serverSockFd);
+        #endif
+
+        #ifdef LINUX_OS
+        close(serverSockFd);
+        #endif
     }
     else
     {
@@ -333,7 +353,7 @@ int NewSSLServer(int argc, char* argv[])
 }
 int OldSSLServer(int argc, char **argv)
 {
-    WSADATA wsaData = WinSockInit();
+    //WSADATA wsaData = WinSockInit();
     //1. SSL Init
     SSL_library_init(); // init ssl lib
     SSL_CTX *ctx;
@@ -414,16 +434,30 @@ int OldSSLServer(int argc, char **argv)
                 }
             }
             //close(client);
+            #ifdef WINDOWS_OS
             closesocket(client);
+            #endif
+
+            #ifdef LINUX_OS
+            close(client);
+            #endif
+
             SSL_shutdown(ssl);
             SSL_free(ssl);
         }
     }
 
+    #ifdef WINDOWS_OS
     closesocket(serverSockFd);
+    #endif
+
+    #ifdef LINUX_OS
+    close(serverSockFd);
+    #endif
+ 
     SSL_CTX_free(ctx);
 
-    WinSockClean(wsaData);
+    //WinSockClean(wsaData);
     return 0;
 }
 
