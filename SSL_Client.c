@@ -111,7 +111,7 @@ int SocketConnect(const SOCKET sockFd,char* hostName, int port)
     memset(&addr, sizeof(addr), 0); // memset address with 0
     addr.sin_family = AF_INET; // IPv4 address family
     addr.sin_port = htons(port); // convert to network short byte order
-    //addr.sin_addr.s_addr = host-> // set the IP of the socket; sin_addr is an union
+    addr.sin_addr.s_addr = *(long*)(host->h_addr);  // set the IP of the socket; sin_addr is an union
     if (connect(sockFd, (struct sockaddr*)&addr, sizeof(addr)) != 0)
     {
         return -1;
