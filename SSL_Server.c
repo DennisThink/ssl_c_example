@@ -306,7 +306,7 @@ void Clear_SSL_NET(struct SSL_NET_Elem elem)
 int NewSSLServer(int argc, char* argv[])
 {
     struct SSL_NET_Elem sslElem;
-    sslElem = Init_SSL_Net("cert.pem","key.pem");
+    sslElem = Init_SSL_Net("./cert.pem","./key.pem");
     if (sslElem._ctx)
     {
         SOCKET serverSockFd = Create_SSL_Socket();
@@ -374,7 +374,7 @@ int OldSSLServer(int argc, char **argv)
         //signal(SIGPIPE, SIG_IGN);
         ctx = CreateContext();
 
-        ConfigureContext("Cert.pem", "Key.pem", ctx);
+        ConfigureContext("cert.pem", "key.pem", ctx);
 
         SOCKET serverSockFd = CreateServerSocket("127.0.0.1",4433);
 

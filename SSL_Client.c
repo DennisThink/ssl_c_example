@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <netdb.h>
 #define SOCKET int
 #endif
 
@@ -155,7 +156,7 @@ int main(int argc, char* argv[])
                             #endif
                             
                             #ifdef LINUX_OS
-                            sleep(1000);
+                            sleep(1);
                             #endif
                             index++;
                         }
@@ -176,7 +177,7 @@ int main(int argc, char* argv[])
                             #endif 
 
                             #ifdef LINUX_OS
-                            sleep(1000);
+                            sleep(1);
                             #endif
                             index++;
                         }
