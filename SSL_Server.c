@@ -51,7 +51,7 @@ void SSLFreeElem(const struct SSL_Elem elem)
 }
 
 /*
-openssl req - nodes - new - x509 - keyout server.key - out server.cert
+"openssl req -nodes -new -x509 -keyout key.pem -out cert.pem"
 */
 SOCKET CreateServerSocket(const char * pAddr,const int port)
 {
